@@ -44,6 +44,12 @@
             <artifactId>langchain4j-open-ai</artifactId>
         </dependency>
 
+        <!-- Local, in-process embeddings (ONNX all-MiniLM-L6-v2) — no API call required -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-embeddings-all-minilm-l6-v2</artifactId>
+        </dependency>
+
         <!-- Loads HF_TOKEN / HF_MODEL from a local .env file -->
         <dependency>
             <groupId>io.github.cdimascio</groupId>

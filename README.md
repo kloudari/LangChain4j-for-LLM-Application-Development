@@ -8,7 +8,7 @@ Python/OpenAI stack.
 ## Project Overview
 
 This is the Java counterpart of the Python project. It is structured by course
-chapter. **Chapters 1, 2 and 3 are fully ported**; remaining chapters are
+chapter. **Chapters 1 through 4 are fully ported**; remaining chapters are
 scaffolded and will be added incrementally.
 
 ## Chapters
@@ -39,9 +39,14 @@ scaffolded and will be added incrementally.
 | `SequentialChain` | Multi-step pipeline with named inputs/outputs (translate → summarize / detect language → follow-up reply) |
 | `RouterChain` | Classifies a question's subject and routes it to the matching sub-chain (physics, math, history, computer science), or a default chain |
 
+### Chapter 4 — Q&A over Documents (RAG) ✅
+
+| Class | Description |
+|-------|-------------|
+| `QaOverDocuments` | Loads a product catalog CSV, embeds each row locally with `AllMiniLmL6V2EmbeddingModel` (in-process ONNX, no API call), indexes them in an `InMemoryEmbeddingStore`, retrieves the top matches for a question, and "stuffs" them into a prompt for the chat model |
+
 ### Planned
 
-- Chapter 4 — Q&A over Documents (RAG)
 - Chapter 5 — Evaluation
 - Chapter 6 — Agents
 
@@ -104,6 +109,7 @@ mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter3.LlmChain"
 mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter3.SimpleSequentialChain"
 mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter3.SequentialChain"
 mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter3.RouterChain"
+mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter4.QaOverDocuments"
 ```
 
 **macOS / Linux (bash/zsh)**
@@ -120,6 +126,7 @@ mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter3.LlmChain"
 mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter3.SimpleSequentialChain"
 mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter3.SequentialChain"
 mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter3.RouterChain"
+mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter4.QaOverDocuments"
 ```
 
 ## Key Concepts
@@ -155,3 +162,20 @@ mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter3.RouterChain"
   sub-chain for the given input, falling back to a default chain
 - Composing multiple LLM calls into pipelines without a dedicated "chain"
   abstraction (LangChain4j favors plain Java composition over LCEL operators)
+
+### Chapter 4 — Q&A over Documents (RAG)
+
+- Retrieval-Augmented Generation: loading a product catalog, embedding it into
+  a vector store, and answering questions grounded in that data
+- Hand-rolled quoted-CSV parser reading `data/outdoor_clothing.csv` from the
+  classpath (no third-party CSV loader dependency)
+- `AllMiniLmL6V2EmbeddingModel` — local, in-process ONNX embeddings (no API
+  call), matching Python's local `sentence-transformers/all-MiniLM-L6-v2`
+- `InMemoryEmbeddingStore<TextSegment>` — lightweight, in-process vector store
+  (from `langchain4j-core`, no extra dependency needed)
+- `EmbeddingSearchRequest` / `store.search(...)` — retrieves the top-K most
+  relevant rows for a question
+- "Stuffing" the retrieved rows into a `PromptTemplate` for the chat model,
+  the LangChain4j equivalent of `chain_type="stuff"`; LangChain4j has no
+  `VectorstoreIndexCreator`/`index.query(...)` convenience wrapper, so the
+  loader → embed → store → retrieve → prompt steps are wired explicitly
