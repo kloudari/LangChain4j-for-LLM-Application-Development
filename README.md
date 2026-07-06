@@ -8,7 +8,7 @@ Python/OpenAI stack.
 ## Project Overview
 
 This is the Java counterpart of the Python project. It is structured by course
-chapter. **Chapters 1 and 2 are fully ported**; remaining chapters are
+chapter. **Chapters 1, 2 and 3 are fully ported**; remaining chapters are
 scaffolded and will be added incrementally.
 
 ## Chapters
@@ -30,9 +30,17 @@ scaffolded and will be added incrementally.
 | `ConversationTokenBufferMemory` | `TokenWindowChatMemory` with a custom word-count `TokenCountEstimator`; keeps messages up to a token budget |
 | `ConversationSummaryMemory` | Summarizes old messages with the LLM itself; condenses history while preserving key information (custom class, no LangChain4j built-in) |
 
+### Chapter 3 — Chains ✅
+
+| Class | Description |
+|-------|-------------|
+| `LlmChain` | Basic building block: a reusable `PromptTemplate` + `ChatModel` pair (custom class — LangChain4j has no dedicated `LLMChain` type) |
+| `SimpleSequentialChain` | Two chains run in sequence; the single string output of one feeds into the next |
+| `SequentialChain` | Multi-step pipeline with named inputs/outputs (translate → summarize / detect language → follow-up reply) |
+| `RouterChain` | Classifies a question's subject and routes it to the matching sub-chain (physics, math, history, computer science), or a default chain |
+
 ### Planned
 
-- Chapter 3 — Chains
 - Chapter 4 — Q&A over Documents (RAG)
 - Chapter 5 — Evaluation
 - Chapter 6 — Agents
@@ -92,6 +100,10 @@ mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter2.ConversationB
 mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter2.ConversationBufferWindowMemory"
 mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter2.ConversationTokenBufferMemory"
 mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter2.ConversationSummaryMemory"
+mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter3.LlmChain"
+mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter3.SimpleSequentialChain"
+mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter3.SequentialChain"
+mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter3.RouterChain"
 ```
 
 **macOS / Linux (bash/zsh)**
@@ -104,6 +116,10 @@ mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter2.ConversationB
 mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter2.ConversationBufferWindowMemory"
 mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter2.ConversationTokenBufferMemory"
 mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter2.ConversationSummaryMemory"
+mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter3.LlmChain"
+mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter3.SimpleSequentialChain"
+mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter3.SequentialChain"
+mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter3.RouterChain"
 ```
 
 ## Key Concepts
@@ -126,3 +142,16 @@ mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter2.ConversationS
 - Custom LLM-powered summarization memory that progressively condenses history
   via `PromptTemplate`
 - Comparing memory strategies for long conversations
+
+### Chapter 3 — Chains
+
+- `LlmChain` — reusable `PromptTemplate` + `ChatModel` wrapper, the LangChain4j
+  equivalent of Python's `prompt | llm | StrOutputParser()` composition
+- `SimpleSequentialChain` — linear pipeline; a single string is passed between
+  steps
+- `SequentialChain` — multi-variable pipeline; named inputs/outputs flow
+  between steps
+- `RouterChain` — conditional routing; a classifier chain selects the best
+  sub-chain for the given input, falling back to a default chain
+- Composing multiple LLM calls into pipelines without a dedicated "chain"
+  abstraction (LangChain4j favors plain Java composition over LCEL operators)
