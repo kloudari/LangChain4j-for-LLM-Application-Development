@@ -8,8 +8,7 @@ Python/OpenAI stack.
 ## Project Overview
 
 This is the Java counterpart of the Python project. It is structured by course
-chapter. **Chapters 1 through 5 are fully ported**; remaining chapters are
-scaffolded and will be added incrementally.
+chapter. **Chapters 1 through 6 are fully ported.**
 
 ## Chapters
 
@@ -52,9 +51,13 @@ scaffolded and will be added incrementally.
 | `QaManualEvaluation` | Runs 5 hard-coded `(query, expected answer)` pairs through the chapter 4 RAG pipeline, scores each prediction with a keyword-overlap heuristic, and prints a CORRECT/INCORRECT verdict plus a final score |
 | `QaLlmEvaluation` | Generates `(query, answer)` ground-truth pairs directly from the product catalog with the LLM itself (LangChain4j has no `QAGenerateChain`), runs each through the RAG pipeline, then has the LLM grade each prediction against the expected answer (no built-in `QAEvalChain` either) — LLM-as-judge instead of keyword matching |
 
-### Planned
+### Chapter 6 — Agents ✅
 
-- Chapter 6 — Agents
+| Class | Description |
+|-------|-------------|
+| `Agents` | LLM equipped with a `CalculatorTool` and a `WikipediaTool`; decides for itself which (if any) tool to call to answer a math or factual-lookup question |
+| `AgentsPython` | Java counterpart of the "Python agent" — since the JVM has no Python interpreter, `JavaCodeExecutorTool` lets the LLM write and run Java code instead (compiled in-process with the JDK compiler) to sort a customer list by last name then first name |
+| `AgentsCustomTools` | Registers six hand-crafted tools (`CustomTools`: date, text stats, temperature conversion x2, string reversal, plus `CalculatorTool`) and runs one demo query per tool |
 
 ## Setup
 
@@ -76,6 +79,12 @@ HF_MODEL=Qwen/Qwen2.5-0.5B-Instruct
 Defaults to a small 0.5B instruct model to minimize Inference Providers cost
 (this is a test/demo project). Swap in a larger model (e.g.
 `Qwen/Qwen2.5-7B-Instruct`) if you need better answer quality.
+
+> **Chapter 6 requires a tool-calling-capable model.** `Qwen/Qwen2.5-0.5B-Instruct`
+> does not support tool/function calling on the Hugging Face router — requests
+> from `Agents`, `AgentsPython`, or `AgentsCustomTools` fail with a
+> `model_not_supported` error. Set `HF_MODEL` to a model that supports tool
+> calling, e.g. `Qwen/Qwen2.5-7B-Instruct`, before running chapter 6.
 
 ### Build
 
@@ -122,6 +131,9 @@ mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter3.RouterChain"
 mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter4.QaOverDocuments"
 mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter5.QaManualEvaluation"
 mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter5.QaLlmEvaluation"
+mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter6.Agents"
+mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter6.AgentsPython"
+mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter6.AgentsCustomTools"
 ```
 
 **macOS / Linux (bash/zsh)**
@@ -141,6 +153,9 @@ mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter3.RouterChain"
 mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter4.QaOverDocuments"
 mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter5.QaManualEvaluation"
 mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter5.QaLlmEvaluation"
+mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter6.Agents"
+mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter6.AgentsPython"
+mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter6.AgentsCustomTools"
 ```
 
 ## Key Concepts
@@ -214,3 +229,28 @@ mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter5.QaLlmEvaluati
   `.env`), and `QaLlmEvaluation` — the priciest chapter at 3 LLM calls per
   document (generate + predict + grade) — defaults to a small `SAMPLE_SIZE`
   of 2 documents (override with `-DsampleSize=N`)
+
+### Chapter 6 — Agents
+
+- `AiServices` — LangChain4j's tool-calling agent builder: given an interface
+  with a single `chat(String)` method and one or more `@Tool`-annotated
+  objects, it drives the reasoning/tool-calling loop internally, the Java
+  equivalent of Python's `create_agent` / `create_tool_calling_agent` +
+  `AgentExecutor`
+- `@Tool` / `@P` — annotate a method (and its parameters) to expose it to the
+  LLM as a callable tool, equivalent to Python's `@tool` decorator
+- `CalculatorTool` — a hand-written recursive-descent arithmetic parser
+  (numbers, `+ - * / ^`, parentheses, `sqrt`/`sin`/`cos`/etc.) instead of
+  Python's sandboxed `eval()`, so there is no code-injection surface at all
+- `WikipediaTool` — calls Wikipedia's public MediaWiki/REST APIs directly via
+  `java.net.http.HttpClient` (no extra dependency), equivalent to Python's
+  `WikipediaQueryRun`/`WikipediaAPIWrapper`
+- `JavaCodeExecutorTool` — since the JVM has no Python interpreter, this
+  compiles an LLM-written Java snippet in-process with the JDK's own
+  compiler and runs it in a throwaway class loader, capturing `System.out`;
+  the Java equivalent of Python's `python_repl`/`exec()` tool. Like the
+  original, it executes arbitrary code with the process's own privileges —
+  intentionally unsandboxed and meant only for this local, trusted demo
+- `CustomTools` — today's date, text stats (word/char count), Celsius↔
+  Fahrenheit conversion, string reversal — small pure-Java tool methods with
+  no external dependencies
