@@ -8,7 +8,7 @@ Python/OpenAI stack.
 ## Project Overview
 
 This is the Java counterpart of the Python project. It is structured by course
-chapter. **Chapters 1 through 4 are fully ported**; remaining chapters are
+chapter. **Chapters 1 through 5 are fully ported**; remaining chapters are
 scaffolded and will be added incrementally.
 
 ## Chapters
@@ -45,9 +45,15 @@ scaffolded and will be added incrementally.
 |-------|-------------|
 | `QaOverDocuments` | Loads a product catalog CSV, embeds each row locally with `AllMiniLmL6V2EmbeddingModel` (in-process ONNX, no API call), indexes them in an `InMemoryEmbeddingStore`, retrieves the top matches for a question, and "stuffs" them into a prompt for the chat model |
 
+### Chapter 5 — Evaluation ✅
+
+| Class | Description |
+|-------|-------------|
+| `QaManualEvaluation` | Runs 5 hard-coded `(query, expected answer)` pairs through the chapter 4 RAG pipeline, scores each prediction with a keyword-overlap heuristic, and prints a CORRECT/INCORRECT verdict plus a final score |
+| `QaLlmEvaluation` | Generates `(query, answer)` ground-truth pairs directly from the product catalog with the LLM itself (LangChain4j has no `QAGenerateChain`), runs each through the RAG pipeline, then has the LLM grade each prediction against the expected answer (no built-in `QAEvalChain` either) — LLM-as-judge instead of keyword matching |
+
 ### Planned
 
-- Chapter 5 — Evaluation
 - Chapter 6 — Agents
 
 ## Setup
@@ -64,8 +70,12 @@ Copy `.env.example` to `.env` and fill in your token:
 
 ```
 HF_TOKEN=your_token_here
-HF_MODEL=Qwen/Qwen2.5-7B-Instruct
+HF_MODEL=Qwen/Qwen2.5-0.5B-Instruct
 ```
+
+Defaults to a small 0.5B instruct model to minimize Inference Providers cost
+(this is a test/demo project). Swap in a larger model (e.g.
+`Qwen/Qwen2.5-7B-Instruct`) if you need better answer quality.
 
 ### Build
 
@@ -110,6 +120,8 @@ mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter3.SimpleSequent
 mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter3.SequentialChain"
 mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter3.RouterChain"
 mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter4.QaOverDocuments"
+mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter5.QaManualEvaluation"
+mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter5.QaLlmEvaluation"
 ```
 
 **macOS / Linux (bash/zsh)**
@@ -127,6 +139,8 @@ mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter3.SimpleSequent
 mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter3.SequentialChain"
 mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter3.RouterChain"
 mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter4.QaOverDocuments"
+mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter5.QaManualEvaluation"
+mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter5.QaLlmEvaluation"
 ```
 
 ## Key Concepts
@@ -179,3 +193,24 @@ mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter4.QaOverDocumen
   the LangChain4j equivalent of `chain_type="stuff"`; LangChain4j has no
   `VectorstoreIndexCreator`/`index.query(...)` convenience wrapper, so the
   loader → embed → store → retrieve → prompt steps are wired explicitly
+
+### Chapter 5 — Evaluation
+
+- Manual evaluation — hard-coded `(query, expected answer)` pairs serve as a
+  ground-truth test set
+- Keyword-overlap scoring — checks whether key words from the expected answer
+  appear in the model's response
+- LLM-assisted evaluation — the LLM itself generates the ground-truth
+  `(query, answer)` pairs from the product catalog (no built-in
+  `QAGenerateChain` in LangChain4j, so it's a plain `PromptTemplate` asking
+  for JSON output) and then grades each prediction against the expected
+  answer (no built-in `QAEvalChain` either — another `PromptTemplate` asking
+  for a CORRECT/INCORRECT verdict)
+- Reuses the chapter 4 RAG pipeline (`QaOverDocuments.loadCsvAsSegments`,
+  `buildStore`, `answer`) instead of duplicating the loader/embedding/store
+  wiring
+- Cost control: this project targets test/demo usage only, so
+  `HfConfig` caps completions at `HF_MAX_TOKENS` (default 256, override in
+  `.env`), and `QaLlmEvaluation` — the priciest chapter at 3 LLM calls per
+  document (generate + predict + grade) — defaults to a small `SAMPLE_SIZE`
+  of 2 documents (override with `-DsampleSize=N`)

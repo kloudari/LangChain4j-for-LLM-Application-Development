@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
  */
 public class QaOverDocuments {
 
-    private static final String CSV_RESOURCE = "/data/outdoor_clothing.csv";
+    public static final String CSV_RESOURCE = "/data/outdoor_clothing.csv";
     private static final int TOP_K = 4;
 
     public static void main(String[] args) throws IOException {
@@ -44,21 +44,26 @@ public class QaOverDocuments {
         EmbeddingModel embeddingModel = new AllMiniLmL6V2EmbeddingModel();
 
         List<TextSegment> segments = loadCsvAsSegments(CSV_RESOURCE);
-
-        InMemoryEmbeddingStore<TextSegment> store = new InMemoryEmbeddingStore<>();
-        for (TextSegment segment : segments) {
-            Embedding embedding = embeddingModel.embed(segment).content();
-            store.add(embedding, segment);
-        }
+        InMemoryEmbeddingStore<TextSegment> store = buildStore(segments, embeddingModel);
 
         String query = "Please list all your shirts with sun protection in a table in markdown and summarize each one.";
         String response = answer(query, embeddingModel, store, chatModel);
         System.out.println(response);
     }
 
+    /** Embeds every segment and indexes it in a fresh in-memory vector store. */
+    public static InMemoryEmbeddingStore<TextSegment> buildStore(List<TextSegment> segments, EmbeddingModel embeddingModel) {
+        InMemoryEmbeddingStore<TextSegment> store = new InMemoryEmbeddingStore<>();
+        for (TextSegment segment : segments) {
+            Embedding embedding = embeddingModel.embed(segment).content();
+            store.add(embedding, segment);
+        }
+        return store;
+    }
+
     /** Embeds the question, retrieves the top matching rows, and "stuffs" them into a prompt (chain_type="stuff"). */
-    static String answer(String query, EmbeddingModel embeddingModel,
-                          InMemoryEmbeddingStore<TextSegment> store, ChatModel chatModel) {
+    public static String answer(String query, EmbeddingModel embeddingModel,
+                                 InMemoryEmbeddingStore<TextSegment> store, ChatModel chatModel) {
         Embedding queryEmbedding = embeddingModel.embed(query).content();
         EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
                 .queryEmbedding(queryEmbedding)
@@ -80,7 +85,7 @@ public class QaOverDocuments {
     }
 
     /** Minimal CSV loader: one {@link TextSegment} per row, formatted as "column: value" lines. */
-    private static List<TextSegment> loadCsvAsSegments(String resourcePath) throws IOException {
+    public static List<TextSegment> loadCsvAsSegments(String resourcePath) throws IOException {
         String csv;
         try (InputStream in = QaOverDocuments.class.getResourceAsStream(resourcePath)) {
             if (in == null) {
