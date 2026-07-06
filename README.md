@@ -8,8 +8,8 @@ Python/OpenAI stack.
 ## Project Overview
 
 This is the Java counterpart of the Python project. It is structured by course
-chapter. **Chapter 1 is fully ported**; remaining chapters are scaffolded and
-will be added incrementally.
+chapter. **Chapters 1 and 2 are fully ported**; remaining chapters are
+scaffolded and will be added incrementally.
 
 ## Chapters
 
@@ -21,9 +21,17 @@ will be added incrementally.
 | `CallLlmModelLangChain` | Same use case rewritten with `PromptTemplate` and input variables |
 | `ExtractReviewInfo` | Structured JSON extraction from a product review (parsed with Jackson) |
 
+### Chapter 2 — Memory ✅
+
+| Class | Description |
+|-------|-------------|
+| `ConversationBufferMemory` | Retains the full conversation history; simple but can grow unbounded (custom `ChatMemory`, no LangChain4j built-in) |
+| `ConversationBufferWindowMemory` | `MessageWindowChatMemory` keeps only the last `k` messages; prevents unbounded growth |
+| `ConversationTokenBufferMemory` | `TokenWindowChatMemory` with a custom word-count `TokenCountEstimator`; keeps messages up to a token budget |
+| `ConversationSummaryMemory` | Summarizes old messages with the LLM itself; condenses history while preserving key information (custom class, no LangChain4j built-in) |
+
 ### Planned
 
-- Chapter 2 — Memory
 - Chapter 3 — Chains
 - Chapter 4 — Q&A over Documents (RAG)
 - Chapter 5 — Evaluation
@@ -80,6 +88,10 @@ otherwise PowerShell mis-splits it at the `=` and Maven reports
 mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter1.CallLlmModelClassic"
 mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter1.CallLlmModelLangChain"
 mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter1.ExtractReviewInfo"
+mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter2.ConversationBufferMemory"
+mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter2.ConversationBufferWindowMemory"
+mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter2.ConversationTokenBufferMemory"
+mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter2.ConversationSummaryMemory"
 ```
 
 **macOS / Linux (bash/zsh)**
@@ -88,11 +100,29 @@ mvn -q exec:java "-Dexec.mainClass=com.coursera.langchain.chapter1.ExtractReview
 mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter1.CallLlmModelClassic"
 mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter1.CallLlmModelLangChain"
 mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter1.ExtractReviewInfo"
+mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter2.ConversationBufferMemory"
+mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter2.ConversationBufferWindowMemory"
+mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter2.ConversationTokenBufferMemory"
+mvn -q exec:java -Dexec.mainClass="com.coursera.langchain.chapter2.ConversationSummaryMemory"
 ```
 
 ## Key Concepts
+
+### Chapter 1 — Models, Prompts and Parsers
 
 - Direct vs. template-driven LLM calls
 - `PromptTemplate` with `{{variable}}` placeholders
 - JSON output parsing for structured extraction
 - Shared `HfConfig` reads `HF_TOKEN` / `HF_MODEL` from `.env`
+
+### Chapter 2 — Memory
+
+- `ChatMemory` interface as the common contract for all memory strategies
+- `MessageWindowChatMemory` — fixed-size sliding window of messages
+- `TokenWindowChatMemory` — token-budget-based retention, paired with a custom
+  `TokenCountEstimator` (word-count approximation)
+- Custom `ChatMemory` implementation for unbounded buffer memory (no LangChain4j
+  built-in for this)
+- Custom LLM-powered summarization memory that progressively condenses history
+  via `PromptTemplate`
+- Comparing memory strategies for long conversations
